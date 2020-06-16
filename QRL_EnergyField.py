@@ -520,7 +520,6 @@ class Environment(object):
 		cv2.moveWindow('frame', 0, 0)
 		key = cv2.waitKey(1)
 		if key == 27: sys.exit()    
-
 class FeatAgent:
 
 	# This class uses a featured based representation of the world rather than explicit states
@@ -681,7 +680,6 @@ class FeatAgent:
 	def get_value(self, state, possible_actions):
 		
 		pass
-
 def randomStart(startLocations, simTime, nA, agentState, rsLog, pLog, nExp):
 	#print("### randomStart ###")
 	# initialise each agent with random position based on "deadzone"
@@ -704,7 +702,6 @@ def randomStart(startLocations, simTime, nA, agentState, rsLog, pLog, nExp):
 	index = "%4i, %4i, %4i" % (0, nExp, simTime)
 	rsLog.write(rsindex + log_string + "\n")
 	pLog.write(index + log_string + "\n")
-	
 def moveGen(simTime, agentID, rLog):
 
 	ran = random.randint(1,5)
@@ -727,7 +724,6 @@ def moveGen(simTime, agentID, rLog):
 	#store the random numbers to check consistency	
 	rLog.write("%7i, %4i \n" % (simTime, ran)) 
 	return x,y #WARNING X and Y are used the wrong way around
-
 def randomMove(simTime, nA, agentState, pLog, rLog, nExp, AV_y):
 	#print("### randomMove ###")
 	log_string = ""
@@ -773,7 +769,6 @@ def randomMove(simTime, nA, agentState, pLog, rLog, nExp, AV_y):
 		#print("initial state for agent", agentID," is ",agentState[simTime,agentID,:])
 	index = "%4i, %4i, %4i" % (nExp, simTime, AV_y)
 	pLog.write(index + log_string + "\n")
-
 def randomBehaviour(simTime, nA, agentState, XR_WD_status, pLog, rLog, nExp, AV_y, diag=True):
 	# Agent walks along pavement and randomly choose to cross the road
 	for agentID in range(0,nA):
@@ -893,7 +888,6 @@ def randomBehaviour(simTime, nA, agentState, XR_WD_status, pLog, rLog, nExp, AV_
 	# write position log
 	index = "%4i, %4i, %4i" % (nExp, simTime, AV_y)
 	pLog.write(index + log_string + "\n")
-
 def Proximity(simTime, nA, agentState, pLog, rLog, nExp, AV_y, trigger_radius=15, diag=False):
 	# Agent walks along pavement and randomly choose to cross the road
 	from scipy.spatial import distance #for cityblock distance
@@ -978,7 +972,6 @@ def Proximity(simTime, nA, agentState, pLog, rLog, nExp, AV_y, trigger_radius=15
 	# write position log
 	index = "%4i, %4i, %4i" % (nExp, simTime, AV_y)
 	pLog.write(index + log_string + "\n")	
-
 def Election(simTime, nA, agentState, XR_WD_status, pLog, rLog, nExp, AV_y, CP=True, ECA=True, trigger_radius=15, diag=True):
 	# Agent walks along pavement and randomly choose to cross the road
 	from scipy.spatial import distance #for cityblock distance
@@ -1230,7 +1223,6 @@ def Election(simTime, nA, agentState, XR_WD_status, pLog, rLog, nExp, AV_y, CP=T
 	# write position log
 	index = "%4i, %4i, %4i" % (nExp, simTime, AV_y)
 	pLog.write(index + log_string + "\n")	
-
 def detectAction(crossing_road, walk_direction,simTime,agentID, diag=False):	
 
 	old2_ax = agentState[simTime-2,agentID,0]
@@ -1267,7 +1259,6 @@ def detectAction(crossing_road, walk_direction,simTime,agentID, diag=False):
 	if old_ay==gridW-1:
 		walk_direction = -1
 	return crossing_road, walk_direction
-
 def checkEdge(gridW, gridH, old_ax, old_ay, new_x, new_y, diag=False):	
 	dx, dy = 0,0
 	if (new_y == 0) or (new_y >= gridW):
@@ -1279,7 +1270,6 @@ def checkEdge(gridW, gridH, old_ax, old_ay, new_x, new_y, diag=False):
 		new_x = int(old_ax + dx)
 		if diag:print("Agent at x-limit reversing")
 	return new_x, new_y
-
 def moveXR(old_x, old_y, XR, WD, diag=False):
 	# Move the agent based on the walk and crossing direction
 	dx, dy = 0, 0
@@ -1306,7 +1296,6 @@ def moveXR(old_x, old_y, XR, WD, diag=False):
 	new_x = int(old_x + dx)
 	new_y = int(old_y + dy)
 	return new_x, new_y
-
 def checkReward(nA, simTime, agentState, agentScores, nExp, roadPenaltyMaxtrix):
 	#Check penalties and living costs
 	rewardArr = np.zeros(shape=nA)
@@ -1328,7 +1317,6 @@ def checkReward(nA, simTime, agentState, agentScores, nExp, roadPenaltyMaxtrix):
 		#if reward==vt: break #no double accounting, only first agent counts!
 	#print("Agent scores are: ", reward)
 	return rewardArr
-
 def checkValidTest(nA, simTime, agentState):
 	for agentID in range (0,nA):
 		Ag_x = int(agentState[simTime,agentID,0])
@@ -1339,12 +1327,10 @@ def checkValidTest(nA, simTime, agentState):
 		else:
 			done = False
 		return done
-
 def moveAV(gridW,gridH,AV_y):
 	AVpositionMaxtrix = np.zeros(shape=(gridH,gridW))
 	AVpositionMaxtrix[[2,3,4,5],AV_y]=1
 	return AVpositionMaxtrix
-
 def MASrender(simTime, nA, agentState, score, nExp):
 		
 	frame = env.frame.copy()
@@ -1400,7 +1386,6 @@ def MASrender(simTime, nA, agentState, score, nExp):
 	cv2.moveWindow('frame', 0, 0)
 	key = cv2.waitKey(1)
 	if key == 27: sys.exit()
-
 def initLocation(nA, nTests):
 	startLocations = np.zeros(shape=(nTests,nA*2))
 	# print("startLocations",startLocations)
@@ -1426,7 +1411,6 @@ def initLocation(nA, nTests):
 		startLocations[experimentID,:] = np.asarray(tempArray)
 		#print("tempArray",tempArray)
 	return startLocations
-
 def getActionSpace(simTime,nA,agentState,XR_WD_status, AV_y, diag):
 
 	# store possible actions for each agent: UP(-x), DOWN(+x), L(-y), R(+y), NONE
@@ -1470,7 +1454,6 @@ def getActionSpace(simTime,nA,agentState,XR_WD_status, AV_y, diag):
 				# if(diag):print('###getActionSpace### futureStates',futureStates)
 	
 	return actionSpace, futureStates
-
 def updatefeatures(simTime, agentState, XR_WD_status, AV_y, nA, nF, gridW, gridH, future=False, diag=False):	
 	import numpy as np
 
@@ -1617,7 +1600,6 @@ def updatefeatures(simTime, agentState, XR_WD_status, AV_y, nA, nF, gridW, gridH
 
 
 	return features, tags
-
 def featuresOfFutureActions(simTime,nA, XR_WD_status, AV_y, nF, agentState, futureStates, future=True):	
 
 	# if(diag): print('###featuresOfFutureActions### futureStates',futureStates)
@@ -1625,7 +1607,6 @@ def featuresOfFutureActions(simTime,nA, XR_WD_status, AV_y, nF, agentState, futu
 	# print("###featuresOfFutureActions", f)
 	# raw_input("Press Enter to continue...")
 	return f
-
 def qValForFutureFeats(nA,nF, futureFeatures,futureActions,AV_y,feat_weights):
 	# qval = np.zeros(shape=(nA*5))
 	qval = np.zeros(shape=(nA,5))
@@ -1671,7 +1652,6 @@ def qValForFutureFeats(nA,nF, futureFeatures,futureActions,AV_y,feat_weights):
 
 	# raw_input("Press Enter to continue...")
 	return qval, q_argmax
-
 def qUpdate():
 	# update the feature weights given the reward
 	difference = (reward + self.alpha * q_val_dash) - qval
@@ -1679,7 +1659,6 @@ def qUpdate():
 	for i in range(self.feat_weights.shape[0]):
 		wi = self.feat_weights[i]
 		self.feat_weights[i] = wi + self.alpha * difference * features[i]
-
 def updateWeights(features,q_vals_future,q_argmax,feat_weights,reward,alpha,current_qval):
 	# ================================================
 	# update feature weights
@@ -1714,7 +1693,6 @@ def updateWeights(features,q_vals_future,q_argmax,feat_weights,reward,alpha,curr
 			# print("difference", difference)
 			# print("feature", features[agentID,wi])
 			# print("new weight", new_weight)
-
 def resetEnv(simTime,nExp,nTests,test_gen_time,done,running_score,exclusions,AV_y,display_grid,nA,agentState,gridW,startLocations,rsLog,pLog):
 	# reset environment 
 	test_gen_time[nExp] = simTime
@@ -1735,7 +1713,6 @@ def resetEnv(simTime,nExp,nTests,test_gen_time,done,running_score,exclusions,AV_
 	simTime = 0
 	randomStart(startLocations,simTime,nA,agentState,rsLog,pLog,nExp) 
 	return simTime,nExp,test_gen_time,done,running_score,exclusions,AV_y,display_grid,nA,agentState,gridW,startLocations,rsLog,pLog
-
 def plot_Features(fig,features,counter,y):
 	x = np.arange(len(features[0,:]))
 	if counter==1: 
@@ -1757,7 +1734,6 @@ def plot_Features(fig,features,counter,y):
 		# key = cv2.waitKey(10)
 		# if key == 27: sys.exit()
 	return counter, y
-
 def plot_Weights(Wfig,feat_weights,Wcounter):
 	x = np.arange(len(feat_weights[0,:]))
 	if Wcounter==1: 
@@ -1775,7 +1751,6 @@ def plot_Weights(Wfig,feat_weights,Wcounter):
 		Wimg = Wimg.reshape(Wfig.canvas.get_width_height()[::-1] + (3,))
 		Wimg = cv2.cvtColor(Wimg,cv2.COLOR_RGB2BGR)
 		cv2.imshow("Weights",	Wimg)
-
 def plot_Qvalues(Qfig,current_qval,Qcounter):				
 	x = np.shape(current_qval)
 	if Qcounter==1: 
@@ -1797,20 +1772,18 @@ def plot_Qvalues(Qfig,current_qval,Qcounter):
 # ======================================================================
 # --- User Experiment Params -----------------------------------------
 
-nTests = 3					# Number of experiements to run
+nTests = 500					# Number of experiements to run
 gridH, gridW = 12, 66			# Each grid unit is 1.5m square
 pavement_rows = [0,1,10,11] 	# grid row of each pavement
 vAV = 6 						# 6u/s ~9.1m/s ~20mph
 vPed = 1 						# 1u/s ~1.4m/s ~3mph
 nA = 3							# Number of agents
-delay = 0.15 					# delay between each frame, slows sim down
+delay = 0.01 					# delay between each frame, slows sim down
 vt = 1000						# points for a valid test
 AV_y = 0						# AV start position along road
 default_reward= -1 				# Living cost
 road_pen = -5					# Penalty for being in road
 nF = 5							# number of features per agent
-
-
 
 display_grid  = True 			# Show the grid
 display_chart = False 			# Show plotted data
@@ -1820,9 +1793,9 @@ loopAgentList = False 			# use nAlist to loop through nA
 plotFeatures  = False 			# plot features
 plotWeights   = False			# plot feature weights
 plotQvalues   = False 			# plot q-values chart
-plotAccuracy  = True 			# plot the accuracy averaged over nExp
+plotAccuracy  = False 			# plot the accuracy averaged over nExp
 SaveCharts    = True 			# save the plots produced
-video_pause   = False			# pause at start for video capture
+video_pause   = True			# pause at start for video capture
 
 display_chart_modulo = 1#nTests
 
@@ -1918,26 +1891,8 @@ for nA in nAList:
 	energyField_xvals = np.linspace(0, gridW, gridW)
 	energyField_yvals = np.linspace(0, gridH, gridH)
 	Ef_X, Ef_Y = np.meshgrid(energyField_xvals, energyField_yvals)
-	# Ef_Z = np.sqrt(Ef_X**2 + Ef_Y**2)
 	Ef_Z = np.zeros(shape=(gridH,gridW))
-
-	import matplotlib.pyplot as plt
-	fig = plt.figure(figsize=(27,5))
-	left, bottom, width, height = 0.1, 0.1, 0.8, 0.8
-	ax = fig.add_axes([left, bottom, width, height])
-	cp = plt.contourf(Ef_X, Ef_Y, Ef_Z)
-	plt.colorbar(cp)
-	ax.set_title('Contour Plot')
-	ax.set_xlabel('x (m)')
-	ax.set_ylabel('y (m)')
-	plt.show()
-	print(np.shape(Ef_Z))
-	raw_input("plotting window open...")
-
-
-
-
-
+	Ef_fig = plt.figure(figsize=(20,4))
 
 	# initialise experiment number and random seed
 	nExp = 0 #experiment counter
@@ -1997,6 +1952,9 @@ for nA in nAList:
 
 	aLog = open("logs/accuracy_log_%s_%s.txt" % (agentBehaviour,ts), "w")
 	aLog.write("Time, Accuracy(%)  \n")
+
+	Ef_Log = open("logs/energy_field_init_loc_%s_%s.txt" % (agentBehaviour,ts), "w")
+	Ef_Log.write("x_pos, y_pos  \n")
 	
 	aExTime = 0 	# Store the time to execute agent actions
 	runningTime = 0 # Running time for accuracy charts
@@ -2155,7 +2113,7 @@ for nA in nAList:
 		end = time.time()
 		aExTime = aExTime + (end - start)
 		if video_pause and nExp==0 and simTime==4:
-			raw_input("press Enter to continue")
+			raw_input("Get Camera Ready then press Enter to continue")
 
 		# plot data if requested
 		if plotFeatures:
@@ -2270,6 +2228,10 @@ for nA in nAList:
 			validTest = (yx_agentList[:,None] == AVlist).all(2).any(1).any()
 			indexIDbool = ((yx_agentList[:,None] == AVlist).all(2)).any(1)
 			indexID = [i for i, x in enumerate(indexIDbool) if x]
+			# print("indexIDbool", indexIDbool)
+			# print("indexID", indexID)
+			# raw_input("press Enter to Continue...")
+
 
 			# If a valid test is found update scores
 			if(validTest):
@@ -2299,24 +2261,50 @@ for nA in nAList:
 
 			# Energy Field
 			if done == True:
-				print("Agent state for Exp# %d " % nExp)
-				print("... after randomStart is: ", agentState[0])
+				if(diag):print("Agent state for Exp# %d " % nExp)
+				if(diag):print("... after randomStart is: ", agentState[0])
 				# if successful test get agent ID
-				print("Agent to generate successful test has ID %d " % indexID[0])
-				# start location of successful agent
-				for ind in range(0,len(indexID)):
-					valid_start = agentState[0,indexID[ind]]
-					print("Valid start location is " , valid_start)
-					valid_x = (int)(valid_start[1])
-					print("Valid x location is " , valid_x)					
-					valid_y = (int)(valid_start[0])
-					print("Valid y location is " , valid_y)
-					# energyField update
-					energyField[valid_x,valid_y] += 1
-				# interpolate grid data
-				# print(energyField)
+				if(diag):print("Agent to generate successful test has ID %d " % indexID[0])
+				# # start location of successful agent
+				# for ind in range(0,len(indexID)):
+				# 	valid_start = agentState[0,indexID[ind]]
+				# 	valid_x = (int)(valid_start[1])
+				# 	valid_y = (int)(valid_start[0])
+				# 	# print("Valid start location is " , valid_start)
+				# 	# print("Valid x location is " , valid_x)					
+				# 	# print("Valid y location is " , valid_y)
+				# 	# energyField update
+				# 	# Ef_Z[valid_x,valid_y] += 1
+				# 	Ef_Z[valid_y,valid_x] += 1
+				
+				# inspect each agent and update field inc +ve and -ve
+				for agentID in range(0,nA):
+					if indexIDbool[agentID]: #which agent generated the test
+						valid_start = agentState[0,agentID]
+						valid_x = (int)(valid_start[1])
+						valid_y = gridH - (int)(valid_start[0]) -1
+						Ef_Z[valid_y,valid_x] -= 1 #reduce energy for good tests
+						Ef_Log.write("%d, %d \n" % (valid_x,valid_y))
+					else:
+						invalid_start = agentState[0,agentID]
+						invalid_x = (int)(invalid_start[1])
+						invalid_y = gridH - (int)(invalid_start[0]) -1
+						Ef_Z[invalid_y,invalid_x] += 0.05/nA #increase energy for bad tests
+
+
 				# display new energy grid
-				raw_input("press Enter to Continue...")
+				if (nExp%display_chart_modulo==0):
+					cp = plt.contourf(Ef_X, Ef_Y, Ef_Z)
+					# plt.colorbar(cp)
+					plt.xlabel('x (m)') 
+					plt.ylabel('y (m)') 
+					plt.title('Initial location energy field: %s run %d of %d' % (agentBehaviour,nExp,nTests))	
+					# plt.grid(True)
+					# plt.ylim((0,100))
+					if(video_pause) and (nExp==1):raw_input("Camera Ready, press Enter to continue...")
+	    			plt.pause(0.01)
+					# plt.show()				
+					# raw_input("press Enter to Continue...")
 
 
 
@@ -2408,6 +2396,7 @@ for nA in nAList:
 	pLog.close()
 	vLog.close()
 	aLog.close()
+	Ef_Log.close()
 	if agentBehaviour == 'Q_Agent':fLog.close()
 
 
@@ -2514,6 +2503,6 @@ for nA in nAList:
 		(nA, accuracy_ratio,mean_tgt,tgt_ci95_low,tgt_ci95_hig,agScore_MIN,agScore_MAX,agScore_AVG,ci95_low,ci95_hig,v_min,v_max,v_avg,v_ci95_low,v_ci95_hig,aExTime))
 
 
-if display_grid: raw_input("Press Enter to close windows")
+if display_grid: raw_input("Complete, Press Enter to close windows")
 print("======================================= ")
 print("Finished\n\n")
