@@ -5,6 +5,7 @@ import numpy.ma as ma #for mask arrays
 import cv2
 import time
 import matplotlib.pyplot as plt
+from mpl_toolkits import mplot3d
 import random
 import os.path
 import datetime
@@ -1768,11 +1769,12 @@ def plot_Qvalues(Qfig,current_qval,Qcounter):
 		Qimg = Qimg.reshape(Qfig.canvas.get_width_height()[::-1] + (3,))
 		Qimg = cv2.cvtColor(Qimg,cv2.COLOR_RGB2BGR)
 		cv2.imshow("Q-Values",	Qimg)
+def make_fig(x,y,z):
+	plt.contou
 
 # ======================================================================
 # --- User Experiment Params -----------------------------------------
-
-nTests = 500					# Number of experiements to run
+nTests = 1001					# Number of experiements to run
 gridH, gridW = 12, 66			# Each grid unit is 1.5m square
 pavement_rows = [0,1,10,11] 	# grid row of each pavement
 vAV = 6 						# 6u/s ~9.1m/s ~20mph
@@ -1785,7 +1787,7 @@ default_reward= -1 				# Living cost
 road_pen = -5					# Penalty for being in road
 nF = 5							# number of features per agent
 
-display_grid  = True 			# Show the grid
+display_grid  = False 			# Show the grid
 display_chart = False 			# Show plotted data
 diag 		  = False			# What level of CL diagnostics to show
 loopAgentList = False 			# use nAlist to loop through nA
@@ -1794,10 +1796,12 @@ plotFeatures  = False 			# plot features
 plotWeights   = False			# plot feature weights
 plotQvalues   = False 			# plot q-values chart
 plotAccuracy  = False 			# plot the accuracy averaged over nExp
+plotContour	  = True			# plot a contour of the energy field
+plot3DContour = False			# plot a 3D contour of the energy field
 SaveCharts    = True 			# save the plots produced
-video_pause   = True			# pause at start for video capture
+video_pause   = False			# pause at start for video capture
 
-display_chart_modulo = 1#nTests
+display_chart_modulo = 50#nTests
 
 # Choose the type of agent behaviour
 # 	RandAction	= take random actions
@@ -1892,7 +1896,8 @@ for nA in nAList:
 	energyField_yvals = np.linspace(0, gridH, gridH)
 	Ef_X, Ef_Y = np.meshgrid(energyField_xvals, energyField_yvals)
 	Ef_Z = np.zeros(shape=(gridH,gridW))
-	Ef_fig = plt.figure(figsize=(20,4))
+	if(plotContour): Ef_fig = plt.figure(figsize=(10,3))
+	if(plot3DContour): Ef_fig = plt.figure(figsize=(10,8))
 
 	# initialise experiment number and random seed
 	nExp = 0 #experiment counter
@@ -2292,29 +2297,33 @@ for nA in nAList:
 						Ef_Z[invalid_y,invalid_x] += 0.05/nA #increase energy for bad tests
 
 
-				# display new energy grid
-				if (nExp%display_chart_modulo==0):
+				# display new energy grid (contour plot)
+				if plotContour and (nExp%display_chart_modulo==0):
 					cp = plt.contourf(Ef_X, Ef_Y, Ef_Z)
-					# plt.colorbar(cp)
+					plt.colorbar(cp)
 					plt.xlabel('x (m)') 
 					plt.ylabel('y (m)') 
-					plt.title('Initial location energy field: %s run %d of %d' % (agentBehaviour,nExp,nTests))	
-					# plt.grid(True)
-					# plt.ylim((0,100))
+					plt.title('Initial location energy field: %s run %d of %d' % (agentBehaviour,nExp,nTests-1))	
 					if(video_pause) and (nExp==1):raw_input("Camera Ready, press Enter to continue...")
 	    			plt.pause(0.01)
-					# plt.show()				
-					# raw_input("press Enter to Continue...")
+	    			if (SaveCharts) and (nExp%display_chart_modulo==0):	
+						plt.savefig('plots/Ef_%s.png' % nExp)
+						plt.clf()
 
-
-
-
-
-
-
-
-
-
+				# display new energy grid (3D contour plot)
+				if plot3DContour and (nExp%display_chart_modulo==0):
+					# Ef_fig = plt.figure()
+					ax = plt.axes(projection='3d')
+					ax.contour3D(Ef_X, Ef_Y, Ef_Z, 50, cmap='binary')
+					# plt.colorbar(cp)
+					ax.set_xlabel('x (m)') 
+					ax.set_ylabel('y (m)') 
+					ax.set_title('Initial location energy field: %s run %d of %d' % (agentBehaviour,nExp,nTests))	
+					if(video_pause) and (nExp==1):raw_input("Camera Ready, press Enter to continue...")
+	    			plt.pause(0.01)
+	    			if (SaveCharts) and (nExp%display_chart_modulo==0):	
+						plt.savefig('plots/Ef3D_%s.png' % nExp)
+						plt.clf()
 
 
 
