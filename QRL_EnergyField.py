@@ -5,10 +5,15 @@ import numpy.ma as ma #for mask arrays
 import cv2
 import time
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use("TkAgg") # set the backend for window position on screen
+import matplotlib.animation as animation
+from celluloid import Camera
 from mpl_toolkits import mplot3d
 import random
 import os.path
 import datetime
+from numpy.random import choice
 
 class Environment(object):
 	
@@ -687,9 +692,7 @@ def randomStart(startLocations, simTime, nA, agentState, rsLog, pLog, nExp):
 	log_string = ""
 	start_array = startLocations[nExp,:]
 	# print("nExp start_array",nExp,start_array)
-
 	for agentID in range(0,nA):
-
 		# read start location from master table
 		x = start_array[(0+2*agentID)]
 		y = start_array[(1+2*agentID)]
@@ -1769,28 +1772,115 @@ def plot_Qvalues(Qfig,current_qval,Qcounter):
 		Qimg = Qimg.reshape(Qfig.canvas.get_width_height()[::-1] + (3,))
 		Qimg = cv2.cvtColor(Qimg,cv2.COLOR_RGB2BGR)
 		cv2.imshow("Q-Values",	Qimg)
-def make_fig(x,y,z):
-	plt.contou
+def update_Ef_Z(Ef_Z, value):
+	Ef_Z[11,18:gridW] += value
+	Ef_Z[10,12:gridW] += value
+	Ef_Z[1,36:gridW] += value
+	Ef_Z[0,54:gridW] += value
+def energyField_update(nA,nExp,agentState,indexID,indexIDbool,Ef_Z,gridH,Ef_Log,diag):
+	if(diag):print("Agent state for Exp# %d " % nExp)
+	if(diag):print("... after randomStart is: ", agentState[0])
+	if(diag):print("Agent to generate successful test has ID %d " % indexID[0])
+	# inspect each agent and update field inc +ve and -ve
+	for agentID in range(0,nA):
+		if indexIDbool[agentID]: #which agent generated the test
+			valid_start = agentState[0,agentID]
+			# print("agentState is ", valid_start)
+			valid_x = (int)(valid_start[1])
+			# valid_y = (int)(valid_start[0])
+			# convert from VIDEO indices to NUMPY indices
+			valid_y = gridH - (int)(valid_start[0]) -1 #EDIT*********
+			Ef_Z[valid_x,valid_y] -= 1 #reduce energy for good tests
+			# Ef_Z[valid_x,valid_y] -= 1 #reduce energy for good tests
+			# if(diag):
+			print("Test generated from (numpy coords) x=%d y=%d" % (valid_x,valid_y) )
+			# print("Ef_Z shape ",np.shape(Ef_Z) )
+			Ef_Log.write("%d, %d \n" % (valid_x,valid_y))
+		# else:
+		# 	invalid_start = agentState[0,agentID]
+		# 	invalid_x = (int)(invalid_start[1])
+		# 	invalid_y = gridH - (int)(invalid_start[0]) -1
+		# 	#to increase energy for bad tests, subtract small amount from ALL VALID CELLS,
+		# 	# Ef_Z -= 0.05/nA #TODO does this act on all elements?
+		# 	# update_Ef_Z(Ef_Z, -0.05/nA)
+		# 	#...then set the original back to -1, i.e. lower the floor
+		# 	Ef_Z[invalid_y,invalid_x] = +0.05/nA
+def energyField_plot(nExp,Ef_X, Ef_Y,Ef_Z,nTests,agentBehaviour,display_chart_modulo,SaveCharts,camera,plotgrid_x,plotgrid_y,grid_x=0,grid_y=0,gifAnimation=False):
+	plt.clf()
+	plt.style.use('classic')
+	Ef_Zplot = np.rot90(Ef_Z,k=1)
+	Ef_Zplot = np.flipud(Ef_Zplot)
+	cp = plt.contourf(Ef_X, Ef_Y, Ef_Zplot)
+	# if EF_spawn:
+	if np.shape(plotgrid_x)[0]>0:
+		if(diag):print("plotting spawn point overlay x=%d y=%d" %(plotgrid_x[0], plotgrid_y[0]))
+		# print("all overlays x=", plotgrid_x)
+		# print("all overlays y=", plotgrid_y)
+		plt.plot(plotgrid_x,plotgrid_y,markersize=15,mew=3,linestyle='None',color='white',marker='o',fillstyle='none')
+	
+	# input("plotting start locations")
+	plt.colorbar(cp)
+	plt.xlabel('x (m)') 
+	plt.ylabel('y (m)') 
+	plt.title('Initial location energy field: %s run %d of %d' % (agentBehaviour,nExp,nTests-1))	
+	# plt.get_current_fig_manager().window.setGeometry(0,400,500,200)
+	plt.get_current_fig_manager().window.wm_geometry("+600+390") # move the window
+	if(video_pause) and (nExp==1):input("Camera Ready, press Enter to continue...")
+	plt.pause(0.001)
+	if gifAnimation:
+		camera.snap()
+	if SaveCharts:	
+		name_file = "plots/Ef_%s_%05d.png" % (agentBehaviour, nExp)
+		if(diag):print(name_file)
+		plt.savefig(name_file)
+def drawSpawnLocation(Ef_P,gridH,gridW,plot=False):
+	# prob = np.rot90(Ef_P,k=3) #rotate to match grid
+	prob = Ef_P
+	# sample from probability distribution				
+	size = gridH * gridW
+	draw = choice(size,1,p=prob.flatten())
+	# print("random draw is %d " % draw)
+	# draw_x = (int)(np.floor(draw / gridH))
+	draw_x = (int)(np.floor(draw % gridH))
+	# draw_y = (int)(draw % gridH)
+	draw_y = (int)(draw / gridH)
+	# print("draw=%d x=%d y=%d" % (draw, draw_x,draw_y))
+	# grid_x, grid_y = draw_x-1, gridH-draw_y #check this
+	grid_x, grid_y = draw_y, draw_x #check this
+	if(diag):print("draw=%d grid x=%d y=%d" % (draw, grid_x,grid_y))
+	# input()
+	# if plot:
+	# 	draw_Z=np.zeros(shape=(gridH,gridW))
+	# 	draw_Z[draw_y,draw_x]=1
+	# 	draw_Z = np.flipud(draw_Z) #mirror in x-axis for plotting
+	# 	Wx = np.linspace(0, gridW, gridW)
+	# 	Hy = np.linspace(0, gridH, gridH)
+	# 	fig_d = plt.figure(1)
+	# 	plt.contourf(Wx,Hy,draw_Z)		
+	# 	plt.pause(.1)
+	return grid_x, grid_y
+	
 
 # ======================================================================
 # --- User Experiment Params -----------------------------------------
-nTests = 1001					# Number of experiements to run
+nTests = 301					# Number of experiements to running_score
 gridH, gridW = 12, 66			# Each grid unit is 1.5m square
 pavement_rows = [0,1,10,11] 	# grid row of each pavement
 vAV = 6 						# 6u/s ~9.1m/s ~20mph
 vPed = 1 						# 1u/s ~1.4m/s ~3mph
-nA = 3							# Number of agents
-delay = 0.01 					# delay between each frame, slows sim down
+nA = 1							# Number of agents
+delay = 0.3					# delay between each frame, slows sim down
 vt = 1000						# points for a valid test
 AV_y = 0						# AV start position along road
 default_reward= -1 				# Living cost
 road_pen = -5					# Penalty for being in road
 nF = 5							# number of features per agent
 
-display_grid  = False 			# Show the grid
+display_grid  = True 			# Show the grid
 display_chart = False 			# Show plotted data
 diag 		  = False			# What level of CL diagnostics to show
 loopAgentList = False 			# use nAlist to loop through nA
+Ef_start 	  = True 			# agents will choose better spawn points based on energy field
 
 plotFeatures  = False 			# plot features
 plotWeights   = False			# plot feature weights
@@ -1799,9 +1889,10 @@ plotAccuracy  = False 			# plot the accuracy averaged over nExp
 plotContour	  = True			# plot a contour of the energy field
 plot3DContour = False			# plot a 3D contour of the energy field
 SaveCharts    = True 			# save the plots produced
+gifAnimation  = True 			# save a gif of the plot sequence
 video_pause   = False			# pause at start for video capture
 
-display_chart_modulo = 50#nTests
+display_chart_modulo = 1#nTests
 
 # Choose the type of agent behaviour
 # 	RandAction	= take random actions
@@ -1810,7 +1901,7 @@ display_chart_modulo = 50#nTests
 #	Election = elects a single agent within range to cross road
 
 agentChoices = ['RandAction', 'RandBehaviour','Proximity','Election','Q_Agent']
-agentBehaviour = agentChoices[4] 	# TODO replace with CL arg
+agentBehaviour = agentChoices[0] 	# TODO replace with CL arg
 TR = 15 							# Proximity/Election Trigger Radius
 ECA = True							# If election is held, choose closest to AV, else furthest
 CP = True 							# Elect agents on pavement closest to the AV
@@ -1829,19 +1920,15 @@ if loopAgentList:
 	vtList = [50,100,200,500,700,800,900,1000,1100,1200,2000,5000,10000,20000,50000,100000,200000,500000]
 else:
 	nAList = [nA]
-
 if plotFeatures:
 	fig = plt.figure()
 	counter=1
-
 if plotWeights:
 	Wfig = plt.figure()
 	Wcounter=1
-
 if plotQvalues:
 	Qfig = plt.figure()
 	Qcounter=1
-
 if plotAccuracy:
 	Afig = plt.figure()
 	Acounter=1
@@ -1891,19 +1978,38 @@ for nA in nAList:
 	# a state-action space array will hold the q-values for each agent
 	stateAction = np.zeros(shape=(nA, nF, 5)) #fixed to 5 basic moves
 
-	# set-up a grid to use as the base of the energy field
-	energyField_xvals = np.linspace(0, gridW, gridW)
-	energyField_yvals = np.linspace(0, gridH, gridH)
-	Ef_X, Ef_Y = np.meshgrid(energyField_xvals, energyField_yvals)
-	Ef_Z = np.zeros(shape=(gridH,gridW))
-	if(plotContour): Ef_fig = plt.figure(figsize=(10,3))
-	if(plot3DContour): Ef_fig = plt.figure(figsize=(10,8))
+	# ======================================================================
+	# --- Energy Field Config. --------------------------------------
 
+	# set-up a grid to use as the base of the energy field
+	energyField_xvals = np.linspace(0, gridW-1, gridW)
+	energyField_yvals = np.linspace(0, gridH-1, gridH)
+	Ef_X, Ef_Y = np.meshgrid(energyField_xvals, energyField_yvals)
+	Ef_Z = np.zeros(shape=(gridW,gridH))
+	
+	#fill energy field with -1 where valid spawn locations are
+	update_Ef_Z(Ef_Z, -1)
+
+	# if(plotContour): 
+	Ef_fig = plt.figure(figsize=(10,3)); 
+	camera = Camera(Ef_fig)
+	plotgrid_x = [] #capture drawn start locations
+	plotgrid_y = []
+	if(plot3DContour): Ef_fig = plt.figure(figsize=(10,8))
+	
+
+	# use a probability distribution of the energy field for sampling
+	Ef_P = np.ones(shape=(gridW,gridH))
+	init_P = (float)(1./(gridW*gridH))
+	# Ef_P.fill(init_P) #initial probability is equal over grid
+	Ef_P.fill(0) #initial probability is equal over grid
+	# print(Ef_P)
+	# input()
+	
 	# initialise experiment number and random seed
 	nExp = 0 #experiment counter
 	random.seed(nExp) #set the random seed based on the experiment number
 	np.random.seed(nExp)
-
 
 	# ======================================================================
 	# --- MDP Agent Experiment Params --------------------------------------
@@ -1928,10 +2034,6 @@ for nA in nAList:
 	# features[agentID,:] =  dx, dy, euclid,inv_euclid,toward
 	# feat_weights = np.array([[ 12.76206632, -40.65811894 , 28.23486239,  81.07528645, -59.54039597],]*nA)
 	# feat_weights = np.array([[ 	10.88713081 ,-49.97721555  ,33.15796263,  66.68952519, -63.46238057],]*nA)
-
-
-
-
 
 	# ======================================================================
 	# --- Logs -------------------------------------------------------------
@@ -1993,7 +2095,6 @@ for nA in nAList:
 	# Flag to indicate if a valid test has been generated
 	done = False
 
-
 	# while(nExp <= nTests):
 	while(not(done)) and (nExp <= nTests-1):
 
@@ -2008,9 +2109,14 @@ for nA in nAList:
 		#increment time
 		if simTime==0 and diag: print("Experiment Number", nExp)
 		#print("simTime=", simTime)
+		if display_grid:
+			MASrender(simTime, nA, agentState, validTests, nExp)
+
+
+
+
 		simTime = simTime + 1
 		runningTime += 1
-
 		start = time.time()
 
 		# move agents	
@@ -2118,7 +2224,7 @@ for nA in nAList:
 		end = time.time()
 		aExTime = aExTime + (end - start)
 		if video_pause and nExp==0 and simTime==4:
-			raw_input("Get Camera Ready then press Enter to continue")
+			input("Get Camera Ready then press Enter to continue")
 
 		# plot data if requested
 		if plotFeatures:
@@ -2233,10 +2339,6 @@ for nA in nAList:
 			validTest = (yx_agentList[:,None] == AVlist).all(2).any(1).any()
 			indexIDbool = ((yx_agentList[:,None] == AVlist).all(2)).any(1)
 			indexID = [i for i, x in enumerate(indexIDbool) if x]
-			# print("indexIDbool", indexIDbool)
-			# print("indexID", indexID)
-			# raw_input("press Enter to Continue...")
-
 
 			# If a valid test is found update scores
 			if(validTest):
@@ -2257,79 +2359,79 @@ for nA in nAList:
 				agentScores[nExp,indexID] = curr_score + vt	
 				validTests = validTests + 1
 				done = True # flag to reset level
-
 			
 			# update the graphics frame
 			env.end_positions = [(2,AV_y),(3,AV_y),(4,AV_y),(5,AV_y)]
-			if display_grid:
-				env.update_state() #renders road and end positions/rewards
+			if display_grid: env.update_state() #renders road and end positions/rewards
 
-			# Energy Field
-			if done == True:
-				if(diag):print("Agent state for Exp# %d " % nExp)
-				if(diag):print("... after randomStart is: ", agentState[0])
-				# if successful test get agent ID
-				if(diag):print("Agent to generate successful test has ID %d " % indexID[0])
-				# # start location of successful agent
-				# for ind in range(0,len(indexID)):
-				# 	valid_start = agentState[0,indexID[ind]]
-				# 	valid_x = (int)(valid_start[1])
-				# 	valid_y = (int)(valid_start[0])
-				# 	# print("Valid start location is " , valid_start)
-				# 	# print("Valid x location is " , valid_x)					
-				# 	# print("Valid y location is " , valid_y)
-				# 	# energyField update
-				# 	# Ef_Z[valid_x,valid_y] += 1
-				# 	Ef_Z[valid_y,valid_x] += 1
+			# update the energy field
+			energyField_update(nA,nExp,agentState,indexID,indexIDbool,Ef_Z,gridH,Ef_Log,diag)
+			
+
+			
+			if done:
+				plotProbHist=False
+				if plotProbHist:
+					x = Ef_P[Ef_P>0.0]
+					print(x)
+					bins=1 if len(x)==0 else len(x)
+					plt.hist(x, density=True, bins=bins)
+					plt.ylabel('Probability')
+					plt.xlabel('Data');
+					plt.pause(0.01)
 				
-				# inspect each agent and update field inc +ve and -ve
-				for agentID in range(0,nA):
-					if indexIDbool[agentID]: #which agent generated the test
-						valid_start = agentState[0,agentID]
-						valid_x = (int)(valid_start[1])
-						valid_y = gridH - (int)(valid_start[0]) -1
-						Ef_Z[valid_y,valid_x] -= 1 #reduce energy for good tests
-						Ef_Log.write("%d, %d \n" % (valid_x,valid_y))
-					else:
-						invalid_start = agentState[0,agentID]
-						invalid_x = (int)(invalid_start[1])
-						invalid_y = gridH - (int)(invalid_start[0]) -1
-						Ef_Z[invalid_y,invalid_x] += 0.05/nA #increase energy for bad tests
+				# #update the probability distribution
+				# print("Ef_Z")
+				# print(Ef_Z)
+				# input()			
+				sample_sum = np.sum(np.absolute(Ef_Z))
+				Ef_Ptemp = Ef_Z
+				# Ef_Ptemp[Ef_Ptemp<0] += 1
+				# print("Ef_Ptemp")
+				# print(Ef_Ptemp)
+				# input()
+				sample_sum = np.sum(np.absolute(Ef_Ptemp))
+				# print("sample sum for Ef_Ptemp is %d" % sample_sum)
+				# Ef_P = np.absolute(Ef_Z) / sample_sum
+				Ef_P = np.absolute(Ef_Ptemp) / sample_sum
+				# print("Ef_P")
+				# print(Ef_P)
+				# input()
 
 
 				# display new energy grid (contour plot)
 				if plotContour and (nExp%display_chart_modulo==0):
-					cp = plt.contourf(Ef_X, Ef_Y, Ef_Z)
-					plt.colorbar(cp)
-					plt.xlabel('x (m)') 
-					plt.ylabel('y (m)') 
-					plt.title('Initial location energy field: %s run %d of %d' % (agentBehaviour,nExp,nTests-1))	
-					if(video_pause) and (nExp==1):raw_input("Camera Ready, press Enter to continue...")
-	    			plt.pause(0.01)
-	    			if (SaveCharts) and (nExp%display_chart_modulo==0):	
-						plt.savefig('plots/Ef_%s.png' % nExp)
-						plt.clf()
+					energyField_plot(nExp,Ef_X, Ef_Y,Ef_Z,nTests,agentBehaviour,display_chart_modulo,SaveCharts,camera,plotgrid_x,plotgrid_y)
 
-				# display new energy grid (3D contour plot)
-				if plot3DContour and (nExp%display_chart_modulo==0):
-					# Ef_fig = plt.figure()
-					ax = plt.axes(projection='3d')
-					ax.contour3D(Ef_X, Ef_Y, Ef_Z, 50, cmap='binary')
-					# plt.colorbar(cp)
-					ax.set_xlabel('x (m)') 
-					ax.set_ylabel('y (m)') 
-					ax.set_title('Initial location energy field: %s run %d of %d' % (agentBehaviour,nExp,nTests))	
-					if(video_pause) and (nExp==1):raw_input("Camera Ready, press Enter to continue...")
-	    			plt.pause(0.01)
-	    			if (SaveCharts) and (nExp%display_chart_modulo==0):	
-						plt.savefig('plots/Ef3D_%s.png' % nExp)
-						plt.clf()
+				# # display new energy grid (3D contour plot)
+				# if plot3DContour and (nExp%display_chart_modulo==0):
+				# 	print("inside plot3DContour with status: %s" % plot3DContour)
+				# 	# Ef_fig = plt.figure()
+				# 	ax = plt.axes(projection='3d')
+				# 	ax.contour3D(Ef_X, Ef_Y, Ef_Z, 50, cmap='binary')
+				# 	# plt.colorbar(cp)
+				# 	ax.set_xlabel('x (m)') 
+				# 	ax.set_ylabel('y (m)') 
+				# 	ax.set_title('Initial location energy field: %s run %d of %d' % (agentBehaviour,nExp,nTests))	
+				# 	if(video_pause) and (nExp==1): raw_input("Camera Ready, press Enter to continue...")
+	   #  			plt.pause(0.01)
+	   #  			if (SaveCharts) and plot3DContour and (nExp%display_chart_modulo==0):	
+				# 		plt.savefig('plots/Ef3D_%s.png' % nExp)
+				# 		plt.clf()
+
+
+
+
+
+
+
+
 
 
 
 
 			# If collision occurs end the experiment			
-			if done == True:
+			if done:
 				if diag:
 					print("~~~~~~~~~~~~~~~~~~~~~")
 					print("Valid test generated!")
@@ -2357,6 +2459,19 @@ for nA in nAList:
 					break
 				else:
 					simTime,nExp,test_gen_time,done,running_score,exclusions,AV_y,display_grid,nA,agentState,gridW,startLocations,rsLog,pLog = resetEnv(simTime,nExp,nTests,test_gen_time,done,running_score,exclusions,AV_y,display_grid,nA,agentState,gridW,startLocations,rsLog,pLog)
+					# #modify start location based on energy field
+					if Ef_start and (epsilon > np.random.uniform(0.0, 1.0)):
+						grid_x, grid_y = drawSpawnLocation(Ef_P,gridH,gridW,plot=True)
+						plotgrid_x.append(grid_x)
+						plotgrid_y.append(grid_y)
+						print("Choosing spawn from EF: X=%d Y=%d" % (grid_x, grid_y))
+						agentState[0,0,0] = 11 - grid_y
+						agentState[0,0,1] = grid_x
+						print("agentState", agentState)
+						input()
+						energyField_plot(nExp,Ef_X, Ef_Y,Ef_Z,nTests,agentBehaviour,display_chart_modulo,SaveCharts,camera,plotgrid_x,plotgrid_y,grid_x=grid_x,grid_y=grid_y)
+						# print("Ef_Z", Ef_Z)
+						# input("DONE: post energyField_plot")
 				continue
 
 			# Reset the game if the AV reaches the end
@@ -2373,7 +2488,18 @@ for nA in nAList:
 					break
 				else:
 					simTime,nExp,test_gen_time,done,running_score,exclusions,AV_y,display_grid,nA,agentState,gridW,startLocations,rsLog,pLog = resetEnv(simTime,nExp,nTests,test_gen_time,done,running_score,exclusions,AV_y,display_grid,nA,agentState,gridW,startLocations,rsLog,pLog)
-				#print("after reset simTime is %d" % simTime)
+				# if Ef_start and (epsilon > np.random.uniform(0.0, 1.0)):
+				# 	grid_x, grid_y = drawSpawnLocation(Ef_P,gridH,gridW,plot=True)
+				# 	plotgrid_x.append(grid_x)
+				# 	plotgrid_y.append(grid_y)
+				# 	if(diag):print("Choosing spawn from EF: X=%d Y=%d" % (grid_x, grid_y))
+				# 	print("Choosing spawn from EF: X=%d Y=%d" % (grid_x, grid_y))
+				# 	agentState[simTime,0,0] = grid_y
+				# 	agentState[simTime,0,1] = grid_x
+				# 	print("agentState", agentState)
+				# 	input()
+				# 	energyField_plot(nExp,Ef_X, Ef_Y,Ef_Z,nTests,agentBehaviour,display_chart_modulo,SaveCharts,camera,plotgrid_x,plotgrid_y,grid_x=grid_x,grid_y=grid_y)
+				# 	# input("FAIL: post energyField_plot")
 				continue
 
 			AV_state = (AV_x,AV_y)
@@ -2384,6 +2510,8 @@ for nA in nAList:
 			break
 		else:
 			if done==False:
+				if plotContour and (nExp%display_chart_modulo==0):
+					energyField_plot(nExp,Ef_X, Ef_Y,Ef_Z,nTests,agentBehaviour,display_chart_modulo,SaveCharts,camera,plotgrid_x,plotgrid_y)
 				reward = checkReward(nA, simTime, agentState, agentScores, nExp, roadPenaltyMaxtrix) #Check reward and end positions 
 				if diag:print("Reward (no test) =", reward)
 				if agentBehaviour == 'Q_Agent': updateWeights(features,q_vals_future,q_argmax,feat_weights,reward,alpha,current_qval)
@@ -2408,6 +2536,11 @@ for nA in nAList:
 	Ef_Log.close()
 	if agentBehaviour == 'Q_Agent':fLog.close()
 
+	# # animation
+	# if gifAnimation:
+	# 	animation = camera.animate()
+	# 	gif_filename = "plot_%s.gif" % ts
+	# 	animation.save(gif_filename, writer = 'imagemagick') 
 
 	#calc stats
 	import scipy.stats as st
@@ -2512,6 +2645,6 @@ for nA in nAList:
 		(nA, accuracy_ratio,mean_tgt,tgt_ci95_low,tgt_ci95_hig,agScore_MIN,agScore_MAX,agScore_AVG,ci95_low,ci95_hig,v_min,v_max,v_avg,v_ci95_low,v_ci95_hig,aExTime))
 
 
-if display_grid: raw_input("Complete, Press Enter to close windows")
+if display_grid: input("Complete, Press Enter to close windows")
 print("======================================= ")
 print("Finished\n\n")
