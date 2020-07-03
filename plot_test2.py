@@ -2,9 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from celluloid import Camera
 
 fig = plt.figure()
 ax = fig.add_subplot(111)
+# camera = Camera(Ef_fig)
+# fig = plt.figure()
 
 # I like to position my colorbars this way, but you don't have to
 div = make_axes_locatable(ax)
